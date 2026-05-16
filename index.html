@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vyrenix Core App v9.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-main: #f0f6fc;
+            --blue-primary: #0066ff;
+            --blue-cyber: #00d2ff;
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --accent-yellow: #ffcc00;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            font-family: 'Share Tech Mono', monospace;
+            padding: 15px 15px 90px 15px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* EFEK BACKGROUND STATIS BERKEDIP */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 102, 255, 0.04) 50%);
+            background-size: 100% 4px;
+            z-index: -1;
+            pointer-events: none;
+            animation: staticFlicker 0.15s infinite;
+        }
+
+        @keyframes staticFlicker {
+            0% { opacity: 0.92; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(1px); }
+            100% { opacity: 0.95; transform: translateY(-1px); }
+        }
+
+        /* EFEK SILUET PLANET BERPUTAR */
+        .bg-planet {
+            position: fixed;
+            top: 15%; right: -20%; width: 400px; height: 400px;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 102, 255, 0.08), rgba(0, 0, 0, 0));
+            border-radius: 50%;
+            box-shadow: inset -20px -20px 50px rgba(0, 102, 255, 0.05);
+            z-index: -2;
+            animation: rotatePlanet 120s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes rotatePlanet {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .wrapper { width: 100%; max-width: 600px; position: relative; z-index: 1; }
+
+        /* HEADER */
+        header {
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--blue-primary);
+            padding-bottom: 10px;
+        }
+
+        .header-title { display: flex; align-items: center; gap: 10px; }
+        .logo-vyrenix {
+            width: 24px; height: 24px;
+            background: linear-gradient(135deg, var(--blue-primary), var(--blue-cyber));
+            clip-path: polygon(0% 0%, 100% 50%, 0% 100%, 30% 50%);
+        }
+        h1 { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; letter-spacing: 3px; }
+        
+        .header-controls { display: flex; align-items: center; gap: 8px; }
+        .top-badge {
+            background: #e6f0ff; color: var(--blue-primary);
+            padding: 4px 8px; border-radius: 4px; font-size: 9px; font-weight: bold;
+        }
+
+        /* TOMBOL MUSIK */
+        .music-btn {
+            width: 26px; height: 26px; border-radius: 50%;
+            border: 1px solid var(--text-muted); background: var(--bg-card);
+            color: var(--text-muted); font-size: 11px;
+            display: flex; justify-content: center; align-items: center; cursor: pointer;
+        }
+        .music-btn.playing {
+            border-color: var(--blue-cyber); background: var(--blue-primary); color: #ffffff;
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 5px var(--blue-cyber); }
+            50% { box-shadow: 0 0 15px var(--blue-cyber); }
+            100% { box-shadow: 0 0 5px var(--blue-cyber); }
+        }
+
+        /* TAB MANAGEMENT */
+        .app-section { display: none; width: 100%; }
+        .active-section { display: block !important; }
+
+        /* BERANDA MENU */
+        .main-grid { display: flex; flex-direction: column; gap: 14px; width: 100%; margin-bottom: 20px; }
+        .db-card {
+            background: var(--bg-card); border: 1px solid rgba(0, 102, 255, 0.15);
+            border-left: 5px solid var(--blue-primary); padding: 16px; border-radius: 6px; cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+        .db-card h2 { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--blue-primary); margin-bottom: 4px; }
+        .db-card p { font-size: 9px; color: var(--text-muted); }
+
+        /* VIDEO FEED BOX */
+        .video-feed-box { background: var(--bg-card); border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-top: 10px; backdrop-filter: blur(5px); }
+        .video-feed-box h3 { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--blue-primary); margin-bottom: 8px; }
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 6px; background: #000; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        .video-caption { font-size: 10px; color: var(--text-muted); margin-top: 8px; font-style: italic; }
+
+        /* SUB PANELS */
+        .sub-panel { background: var(--bg-card); border: 1px solid rgba(0, 102, 255, 0.15); padding: 15px; border-radius: 6px; backdrop-filter: blur(5px); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px dashed rgba(0, 102, 255, 0.2); padding-bottom: 8px; }
+        .panel-title { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: bold; }
+        .btn-back { background: #cbd5e1; border: none; padding: 4px 10px; font-size: 9px; cursor: pointer; border-radius: 3px; font-weight: bold; }
+
+        .category-box { background: rgba(250, 251, 252, 0.9); border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+        .category-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .category-title { font-size: 10px; color: var(--blue-primary); font-weight: bold; background: #e6f0ff; padding: 2px 6px; border-radius: 2px; }
+        .btn-star { background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; }
+        .btn-star.subbed { color: var(--accent-yellow); }
+        
+        /* CONTAINER DATA DINAMIS HASIL UPLOAD */
+        .dynamic-uploads { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .uploaded-card { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .uploaded-img { width: 100%; max-height: 150px; object-fit: cover; border-radius: 4px; background: #cbd5e1; }
+        .uploaded-header { display: flex; justify-content: space-between; align-items: center; }
+        .uploaded-caption { font-size: 11px; font-weight: bold; color: var(--text-dark); }
+        
+        /* WARNA WARNI BADGE TIER */
+        .tier-badge { font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 3px; color: white; }
+        .tier-d { background: #64748b; }
+        .tier-c { background: #475569; }
+        .tier-b { background: #10b981; }
+        .tier-a { background: #0066ff; }
+        .tier-s { background: #a855f7; box-shadow: 0 0 5px #a855f7; }
+        .tier-ss { background: #f97316; box-shadow: 0 0 8px #f97316; }
+        .tier-sss { background: #ef4444; box-shadow: 0 0 12px #ef4444; animation: flashTier 1s infinite alternate; }
+
+        @keyframes flashTier { from { opacity: 0.8; } to { opacity: 1; filter: drop-shadow(0 0 4px #ef4444); } }
+
+        .uploaded-desc { font-size: 9px; color: var(--text-muted); line-height: 1.3; }
+
+        /* FORM HALAMAN UPLOAD (OPENED) */
+        .upload-form { background: var(--bg-card); border: 1px solid rgba(0, 102, 255, 0.2); padding: 15px; border-radius: 6px; display: flex; flex-direction: column; gap: 12px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 9px; font-weight: bold; color: var(--blue-primary); text-transform: uppercase; }
+        .form-group input, .form-group select, .form-group textarea {
+            font-family: 'Share Tech Mono', monospace; font-size: 11px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: white; color: var(--text-dark);
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--blue-primary); outline: none; }
+        
+        .preview-upload-box { width: 100%; height: 120px; border: 2px dashed #cbd5e1; border-radius: 4px; display: flex; justify-content: center; align-items: center; cursor: pointer; overflow: hidden; background: #f8fafc; }
+        .preview-upload-box img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .preview-text { font-size: 10px; color: var(--text-muted); }
+
+        .btn-submit-data { background: var(--blue-primary); color: white; border: none; padding: 10px; border-radius: 4px; font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 1px; cursor: pointer; transition: background 0.3s; margin-top: 5px; }
+        .btn-submit-data:hover { background: #0052cc; }
+
+        /* SUBSCRIPTION TAB */
+        .sub-empty { text-align: center; color: var(--text-muted); font-size: 10px; padding: 15px 0; }
+        .sub-item { background: var(--bg-card); border: 1px solid #00ff66; border-left: 4px solid #00ff66; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+        .sub-tag { display: inline-block; font-size: 8px; background: #e6fff0; color: #00aa44; padding: 1px 5px; border-radius: 3px; font-weight: bold; margin-top: 4px; }
+
+        /* DESKRIPSI TAB */
+        .desc-card { background: var(--bg-card); border: 1px solid #cbd5e1; padding: 15px; border-radius: 6px; margin-bottom: 12px; }
+        .desc-card h3 { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--blue-primary); margin-bottom: 6px; }
+        .desc-card p { font-size: 9px; color: var(--text-muted); line-height: 1.4; }
+
+        /* PROFIL TAB */
+        .profile-container { display: flex; flex-direction: column; align-items: center; gap: 15px; background: var(--bg-card); padding: 15px; border-radius: 6px; border: 1px solid #cbd5e1; width: 100%; }
+        .avatar-box { width: 80px; height: 80px; border: 2px dashed var(--blue-primary); background-color: #cbd5e1; border-radius: 50%; position: relative; overflow: hidden; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        .avatar-box img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .avatar-placeholder { width: 100%; height: 100%; position: relative; }
+        .avatar-placeholder::before { content: ''; width: 26px; height: 26px; background: #94a3b8; border-radius: 50%; position: absolute; top: 16px; left: 27px; }
+        .avatar-placeholder::after { content: ''; width: 48px; height: 22px; background: #94a3b8; border-radius: 20px 20px 0 0; position: absolute; bottom: 10px; left: 16px; }
+        #fileInputProfile { display: none; }
+        #fileInputData { display: none; }
+
+        .profile-list { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .profile-row { border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+        .p-label { font-size: 8px; color: var(--text-muted); text-transform: uppercase; }
+        .p-value { font-size: 11px; font-weight: bold; }
+        .btn-edit { background: none; border: 1px solid var(--blue-primary); color: var(--blue-primary); padding: 6px 12px; font-size: 9px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; }
+
+        /* NAVBAR FIXED */
+        .youtube-nav-bar {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 600px; background: #ffffff; border-top: 1px solid #cbd5e1;
+            padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 5px;
+            z-index: 9999; box-shadow: 0 -3px 10px rgba(0,0,0,0.05);
+        }
+        .nav-btn { flex: 1; background: none; border: none; color: var(--text-muted); padding: 6px 2px; font-family: 'Share Tech Mono', monospace; font-size: 9px; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        .nav-btn.active { color: var(--blue-primary); }
+        .nav-btn.active .nav-btn-icon { color: var(--blue-cyber); text-shadow: 0 0 6px rgba(0, 210, 255, 0.6); }
+        .nav-btn-icon { font-size: 16px; color: var(--text-muted); }
+
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+    <div class="bg-planet"></div>
+
+    <audio id="coreBgm" loop src="https://cdn.discordapp.com/attachments/1218962424049307750/1505278909271507104/Neon_Drift_Memory.mp3?ex=6a0a0bba&is=6a08ba3a&hm=fa54445414fc5b015336dc8b771beabe7c4db6501463543d57406f18f7c47e26&"></audio>
+
+    <div class="wrapper">
+        
+        <header>
+            <div class="header-title">
+                <div class="logo-vyrenix"></div>
+                <h1>VYRENIX</h1>
+            </div>
+            <div class="header-controls">
+                <button id="btnMusicToggle" class="music-btn" onclick="toggleMusic()">⃠♫</button>
+                <div class="top-badge" id="topBadge">CEO ACCESS</div>
+            </div>
+        </header>
+
+        <div id="sec-beranda" class="app-section active-section">
+            <div id="dashboardMenu" class="main-grid">
+                <div class="db-card" onclick="openDatabase('geoPanel')">
+                    <h2>GEOGRAPHICAL DATABASE</h2>
+                    <p>Topografi medan fiksi, pengarsipan sampel batu, jenis tanah, air, dan tanaman.</p>
+                </div>
+                <div class="db-card" onclick="openDatabase('astroPanel')">
+                    <h2>ASTRONOMICAL DATABASE</h2>
+                    <p>Navigasi rute Infinite Edge, koordinat objek planet, bintang, dan sabuk asteroid.</p>
+                </div>
+                <div class="db-card" onclick="openDatabase('techPanel')">
+                    <h2>TECHNOLOGY RESEARCH</h2>
+                    <p>Data rekayasa laboratorium, log pengerjaan teknologi, dan konsep rancangan.</p>
+                </div>
+                <div class="db-card" onclick="openDatabase('productPanel')">
+                    <h2>PRODUCT DATABASE</h2>
+                    <p>Katalog hardware elektronik, manifes kru penumpang, perkakas, dan modul pendukung.</p>
+                </div>
+
+                <div class="video-feed-box">
+                    <h3><span>●</span> EXTERNAL MEDIA FEED</h3>
+                    <div class="video-wrapper">
+                        <iframe src="https://www.youtube.com/embed/AM841IK_X6s" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div class="video-caption">Data streaming eksternal: Rekaman relaksasi kosmik.</div>
+                </div>
+            </div>
+
+            <div id="geoPanel" class="sub-panel app-section">
+                <div class="panel-header"><span class="panel-title">GEOGRAPHICAL NETWORK</span><button class="btn-back" onclick="closeDatabase()">[ KEMBALI ]</button></div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: BATU</span><button class="btn-star" id="star-batu" onclick="toggleSubscribe('Batu', 'Sayang Bumi', 'star-batu')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-batu"></div>
+                </div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: TANAH</span><button class="btn-star" id="star-tanah" onclick="toggleSubscribe('Tanah', 'Sayang Bumi', 'star-tanah')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-tanah"></div>
+                </div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: POHON</span><button class="btn-star" id="star-pohon" onclick="toggleSubscribe('Pohon', 'Sayang Bumi', 'star-pohon')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-pohon"></div>
+                </div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: AIR</span><button class="btn-star" id="star-air" onclick="toggleSubscribe('Air', 'Sayang Bumi', 'star-air')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-air"></div>
+                </div>
+            </div>
+
+            <div id="astroPanel" class="sub-panel app-section">
+                <div class="panel-header"><span class="panel-title">ASTRONOMICAL NETWORK</span><button class="btn-back" onclick="closeDatabase()">[ KEMBALI ]</button></div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: PLANET</span><button class="btn-star" id="star-planet" onclick="toggleSubscribe('Planet', 'Anak Anak Bintang', 'star-planet')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-planet"></div>
+                </div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: BINTANG</span><button class="btn-star" id="star-bintang" onclick="toggleSubscribe('Bintang', 'Anak Anak Bintang', 'star-bintang')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-bintang"></div>
+                </div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: ASTEROID</span><button class="btn-star" id="star-asteroid" onclick="toggleSubscribe('Asteroid', 'Anak Anak Bintang', 'star-asteroid')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-asteroid"></div>
+                </div>
+            </div>
+
+            <div id="techPanel" class="sub-panel app-section">
+                <div class="panel-header"><span class="panel-title">RESEARCH ENGINE</span><button class="btn-back" onclick="closeDatabase()">[ KEMBALI ]</button></div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">STATUS: DIKERJAKAN</span><button class="btn-star" id="star-dikerjakan" onclick="toggleSubscribe('Riset Dikerjakan', 'Ilmuwan Pintar', 'star-dikerjakan')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-dikerjakan"></div>
+                </div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">STATUS: DIPIKIRKAN</span><button class="btn-star" id="star-dipikirkan" onclick="toggleSubscribe('Riset Dipikirkan', 'Ilmuwan Pintar', 'star-dipikirkan')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-dipikirkan"></div>
+                </div>
+            </div>
+
+            <div id="productPanel" class="sub-panel app-section">
+                <div class="panel-header"><span class="panel-title">PRODUCT NETWORK</span><button class="btn-back" onclick="closeDatabase()">[ KEMBALI ]</button></div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: BARANG ELECTRONIC</span><button class="btn-star" id="star-elec" onclick="toggleSubscribe('Barang Electronic', 'Penikmat Teknologi', 'star-elec')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-elec"></div>
+                </div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: PENUMPANG</span><button class="btn-star" id="star-penumpang" onclick="toggleSubscribe('Manifes Penumpang', 'Penikmat Teknologi', 'star-penumpang')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-penumpang"></div>
+                </div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: ALAT</span><button class="btn-star" id="star-alat" onclick="toggleSubscribe('Peralatan Mekanik', 'Penikmat Teknologi', 'star-alat')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-alat"></div>
+                </div>
+                <div class="category-box">
+                    <div class="category-meta"><span class="category-title">KAT: PENDUKUNG</span><button class="btn-star" id="star-dukung" onclick="toggleSubscribe('Modul Pendukung', 'Penikmat Teknologi', 'star-dukung')">☆</button></div>
+                    <div class="dynamic-uploads" id="container-dukung"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-sub" class="app-section">
+            <div class="panel-header"><span class="panel-title">SUBSCRIBED NETWORK</span></div>
+            <div id="subContainer"><div class="sub-empty">Belum ada kategori yang kamu bintangi.</div></div>
+        </div>
+
+        <div id="sec-upload" class="app-section">
+            <div class="panel-header"><span class="panel-title">CORE DATABASE UPLOADER</span></div>
+            <div class="upload-form">
+                
+                <div class="form-group">
+                    <label>Unggah Gambar Database</label>
+                    <div class="preview-upload-box" onclick="triggerDataPhotoSelect()">
+                        <span class="preview-text" id="previewText">Klik untuk memilih Gambar</span>
+                        <img id="dataImgPreview" src="" alt="Pratinjau">
+                    </div>
+                    <input type="file" id="fileInputData" accept="image/*" onchange="loadDataPhoto(event)">
+                </div>
+
+                <div class="form-group">
+                    <label>Pilih Kategori Node</label>
+                    <select id="inputKategori">
+                        <option value="batu">Geografi: Batu</option>
+                        <option value="tanah">Geografi: Tanah</option>
+                        <option value="pohon">Geografi: Pohon</option>
+                        <option value="air">Geografi: Air</option>
+                        <option value="planet">Astronomi: Planet</option>
+                        <option value="bintang">Astronomi: Bintang</option>
+                        <option value="asteroid">Astronomi: Asteroid</option>
+                        <option value="dikerjakan">Riset: Dikerjakan</option>
+                        <option value="dipikirkan">Riset: Dipikirkan</option>
+                        <option value="elec">Produk: Barang Elektronik</option>
+                        <option value="penumpang">Produk: Manifes Penumpang</option>
+                        <option value="alat">Produk: Peralatan Mekanik</option>
+                        <option value="dukung">Produk: Modul Pendukung</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Data Klasifikasi Tier</label>
+                    <select id="inputTier">
+                        <option value="d">TIER D (Standard Node)</option>
+                        <option value="c">TIER C (Common Node)</option>
+                        <option value="b">TIER B (Advanced Node)</option>
+                        <option value="a">TIER A (Rare Node)</option>
+                        <option value="s">TIER S (Epic Anomaly)</option>
+                        <option value="ss">TIER SS (Legendary Anomaly)</option>
+                        <option value="sss">TIER SSS+ (Mythical Overlord)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Caption Data</label>
+                    <input type="text" id="inputCaption" placeholder="Contoh: Batu Kristal Onyx, Planet Kepler-452b">
+                </div>
+
+                <div class="form-group">
+                    <label>Deskripsi Teknis Log</label>
+                    <textarea id="inputDeskripsi" rows="3" placeholder="Masukkan detail catatan data laboratrium..."></textarea>
+                </div>
+
+                <button class="btn-submit-data" onclick="submitDatabaseData()">SUBMIT DATA TO CORE</button>
+            </div>
+        </div>
+
+        <div id="sec-deskripsi" class="app-section">
+            <div class="panel-header"><span class="panel-title">VYRENIX ENCYCLOPEDIA</span></div>
+            <div class="desc-card">
+                <h3>KORPORASI FIKSI INTERAKTIF</h3>
+                <p>Vyrenix Industry Corp adalah entitas fiksi ilmiah tingkat lanjut yang berfokus pada pengembangan kedirgantaraan, eksplorasi kosmik, rekayasa mekanika kuantum, dan klasifikasi database geografis planet luar semesta.</p>
+            </div>
+            <div class="desc-card">
+                <h3>ARMADA ULTIMATE: INFINITE EDGE</h3>
+                <p>Infinite Edge merupakan super-spaceship fantasi andalan berukuran raksasa sepanjang 4.9 kilometer. Pesawat penjelajah mandiri ini didesain berteknologi tinggi yang memuat modul ekologi planet, riset anomali, serta tempat tinggal bagi kru peradaban Vyrenix.</p>
+            </div>
+        </div>
+
+        <div id="sec-profil" class="app-section">
+            <div class="panel-header"><span class="panel-title">PUBLIC INTERFACE PROFILE</span></div>
+            <div class="profile-container">
+                <div class="avatar-box" onclick="triggerProfilePhotoSelect()">
+                    <div class="avatar-placeholder" id="placeholderAva"></div>
+                    <img id="profileImage" src="" alt="Profil">
+                </div>
+                <input type="file" id="fileInputProfile" accept="image/*" onchange="loadProfilePhoto(event)">
+
+                <div class="profile-list">
+                    <div class="profile-row"><div class="p-label">Nama Lengkap</div><div class="p-value" id="disp-nama">Raju Aditia</div></div>
+                    <div class="profile-row"><div class="p-label">Tanggal Kelahiran</div><div class="p-value" id="disp-lahir">13 Juni 2007</div></div>
+                    <div class="profile-row"><div class="p-label">Status Otoritas</div><div class="p-value" id="disp-status">CEO ACCESS / FOUNDER</div></div>
+                    <div class="profile-row"><div class="p-label">Jenis Kelamin</div><div class="p-value" id="disp-gender">Laki-laki</div></div>
+                </div>
+                <button class="btn-edit" onclick="triggerEditProfil()">EDIT DATA PROFIL</button>
+            </div>
+        </div>
+
+        <nav class="youtube-nav-bar">
+            <button class="nav-btn active" id="btn-beranda" onclick="switchSection('beranda')"><span class="nav-btn-icon">&#128203;</span><span>Beranda</span></button>
+            <button class="nav-btn" id="btn-sub" onclick="switchSection('sub')"><span class="nav-btn-icon">&#11088;</span><span>Subbed</span></button>
+            <button class="nav-btn" id="btn-upload" onclick="switchSection('upload')"><span class="nav-btn-icon">&#10133;</span><span>Upload</span></button>
+            <button class="nav-btn" id="btn-deskripsi" onclick="switchSection('deskripsi')"><span class="nav-btn-icon">&#128214;</span><span>Deskripsi</span></button>
+            <button class="nav-btn" id="btn-profil" onclick="switchSection('profil')"><span class="nav-btn-icon">&#128100;</span><span>Profil</span></button>
+        </nav>
+
+    </div>
+
+    <script>
+        let subscribedCategories = [];
+        let temporaryImageDataUrl = ""; // Menyimpan gambar uploader sementara
+
+        function toggleMusic() {
+            const audio = document.getElementById('coreBgm');
+            const btn = document.getElementById('btnMusicToggle');
+            audio.volume = 0.5;
+            if (audio.paused) {
+                audio.play().then(() => { btn.innerHTML = '♪'; btn.classList.add('playing'); })
+                .catch(() => { alert("Sentuh layar sekali dulu agar musik diizinkan browser!"); });
+            } else {
+                audio.pause(); btn.innerHTML = '⃠♫'; btn.classList.remove('playing');
+            }
+        }
+
+        // PHOTO PROFIL ENGINE
+        function triggerProfilePhotoSelect() { document.getElementById('fileInputProfile').click(); }
+        function loadProfilePhoto(event) {
+            const image = document.getElementById('profileImage');
+            const placeholder = document.getElementById('placeholderAva');
+            if(event.target.files && event.target.files[0]) {
+                image.src = URL.createObjectURL(event.target.files[0]);
+                image.style.display = 'block'; placeholder.style.display = 'none';
+            }
+        }
+
+        // CORE DATA UPLOADER IMAGE ENGINE
+        function triggerDataPhotoSelect() { document.getElementById('fileInputData').click(); }
+        function loadDataPhoto(event) {
+            const previewImg = document.getElementById('dataImgPreview');
+            const previewText = document.getElementById('previewText');
+            if(event.target.files && event.target.files[0]) {
+                temporaryImageDataUrl = URL.createObjectURL(event.target.files[0]);
+                previewImg.src = temporaryImageDataUrl;
+                previewImg.style.display = 'block';
+                previewText.style.display = 'none';
+            }
+        }
+
+        // PROSES SUBMIT FORM DATA UPLOAD KE DALAM NODE KATEGORI
+        function submitDatabaseData() {
+            const kategori = document.getElementById('inputKategori').value;
+            const tier = document.getElementById('inputTier').value;
+            const caption = document.getElementById('inputCaption').value;
+            const deskripsi = document.getElementById('inputDeskripsi').value;
+            const targetContainer = document.getElementById('container-' + kategori);
+
+            if(!caption || !deskripsi || !temporaryImageDataUrl) {
+                alert("Otoritas Ditolak: Gambar, Caption, dan Deskripsi wajib diisi!");
+                return;
+            }
+
+            // Membuat element card database baru secara dinamis
+            const card = document.createElement('div');
+            card.className = 'uploaded-card';
+
+            // Menentukan teks dan warna kelas tier
+            let tierText = tier.toUpperCase();
+            if(tier === 'sss') tierText = 'SSS+';
+            
+            card.innerHTML = `
+                <img src="${temporaryImageDataUrl}" class="uploaded-img" alt="data">
+                <div class="uploaded-header">
+                    <span class="uploaded-caption">${caption}</span>
+                    <span class="tier-badge tier-${tier}">${tierText}</span>
+                </div>
+                <p class="uploaded-desc">${deskripsi}</p>
+            `;
+
+            // Menyisipkan data baru di bagian paling atas kategori
+            targetContainer.insertBefore(card, targetContainer.firstChild);
+
+            // Reset Form Uploader kembali kosong
+            document.getElementById('inputCaption').value = "";
+            document.getElementById('inputDeskripsi').value = "";
+            document.getElementById('dataImgPreview').style.display = 'none';
+            document.getElementById('previewText').style.display = 'block';
+            temporaryImageDataUrl = "";
+
+            alert("SUKSES: Data berhasil disinkronisasikan ke dalam Core!");
+            switchSection('beranda'); // Alihkan otomatis ke beranda biar langsung kelihatan hasilnya
+        }
+
+        // NAVIGATION SWITCHER
+        function switchSection(targetId) {
+            const allSections = document.querySelectorAll('.app-section');
+            allSections.forEach(section => section.classList.remove('active-section'));
+            const navButtons = document.querySelectorAll('.nav-btn');
+            navButtons.forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById('sec-' + targetId).classList.add('active-section');
+            document.getElementById('btn-' + targetId).classList.add('active');
+
+            if (targetId === 'beranda') { document.getElementById('dashboardMenu').style.display = 'flex'; }
+            window.scrollTo(0,0);
+        }
+
+        function openDatabase(panelId) {
+            document.getElementById('dashboardMenu').style.display = 'none';
+            document.getElementById(panelId).classList.add('active-section');
+            window.scrollTo(0,0);
+        }
+
+        function closeDatabase() {
+            document.getElementById('dashboardMenu').style.display = 'flex';
+            const panels = document.querySelectorAll('.sub-panel');
+            panels.forEach(p => p.classList.remove('active-section'));
+            window.scrollTo(0,0);
+        }
+
+        // STAR SUBSCRIPTION SYSTEM
+        function toggleSubscribe(name, tag, buttonId) {
+            const btn = document.getElementById(buttonId);
+            const index = subscribedCategories.findIndex(item => item.name === name);
+            if (index === -1) {
+                subscribedCategories.push({ name: name, tag: tag, btnId: buttonId });
+                btn.innerHTML = '★'; btn.classList.add('subbed');
+            } else {
+                subscribedCategories.splice(index, 1);
+                btn.innerHTML = '☆'; btn.classList.remove('subbed');
+            }
+            renderSubscriptions();
+        }
+
+        function renderSubscriptions() {
+            const container = document.getElementById('subContainer');
+            if (subscribedCategories.length === 0) {
+                container.innerHTML = '<div class="sub-empty">Belum ada kategori yang kamu bintangi.</div>';
+                return;
+            }
+            let html = '';
+            subscribedCategories.forEach(item => {
+                html += `
+                    <div class="sub-item">
+                        <div style="font-size: 11px; font-weight: bold; text-transform: uppercase;">KAT_SUB: ${item.name}</div>
+                        <div class="sub-tag">TAG: ${item.tag}</div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // EDIT DATA TEXT PROFIL
+        function triggerEditProfil() {
+            const currentNama = document.getElementById('disp-nama').innerText;
+            const currentLahir = document.getElementById('disp-lahir').innerText;
+            const currentStatus = document.getElementById('disp-status').innerText;
+            const currentGender = document.getElementById('disp-gender').innerText;
+
+            const newNama = prompt("Ubah Nama Lengkap:", currentNama);
+            if(newNama) document.getElementById('disp-nama').innerText = newNama;
+            const newLahir = prompt("Ubah Tanggal Lahir:", currentLahir);
+            if(newLahir) document.getElementById('disp-lahir').innerText = newLahir;
+            const newStatus = prompt("Ubah Status Otoritas:", currentStatus);
+            if(newStatus) {
+                document.getElementById('disp-status').innerText = newStatus;
+                document.getElementById('topBadge').innerText = newStatus.split('/')[0].trim();
+            }
+            const newGender = prompt("Ubah Jenis Kelamin:", currentGender);
+            if(newGender) document.getElementById('disp-gender').innerText = newGender;
+        }
+    </script>
+</body>
+</html>
