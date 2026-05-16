@@ -1,2 +1,2 @@
 # Vyrenix.hub
-Vyrenix official website.
+Vyrenix testing project website.
